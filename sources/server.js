@@ -1,3 +1,6 @@
+import { makeSequelizeBackend }                                                 from '@manaflair/json-server/sequelize';
+import { JsonServer }                                                           from '@manaflair/json-server';
+import bodyParser                                                               from 'body-parser';
 import historyApiFallback                                                       from 'connect-history-api-fallback';
 import express                                                                  from 'express';
 import { BOOLEAN, STRING, UUID, UUIDV4 }                                        from 'sequelize';
@@ -66,6 +69,13 @@ Promise.resolve().then(() => {
 
         let config = require(`../webpack.config.js`);
         let compiler = webpack(config);
+
+        let jsonServer = new JsonServer();
+        jsonServer.add(makeSequelizeBackend(Section));
+        jsonServer.add(makeSequelizeBackend(Note));
+
+        base.use(bodyParser.json());
+        base.use(`/api`, jsonServer.middleware);
 
         base.use(historyApiFallback());
         base.use(webpackDevMiddleware(compiler));
