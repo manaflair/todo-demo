@@ -1,3 +1,4 @@
+import { fetchJsonServer, resolveSelector }                                     from '@manaflair/json-talk';
 import { autobind }                                                             from 'core-decorators';
 
 import { Card }                                                                 from 'components/Card';
@@ -7,6 +8,22 @@ export class IndexPage extends React.Component {
     static propTypes = {
 
     };
+
+    constructor(props) {
+
+        super(props);
+
+        this.state = { sections: null };
+
+    }
+
+    componentDidMount() {
+
+        fetchJsonServer(`/api/sections?include=Notes,Notes.Section`).then(serverData => {
+            this.setState({ sections: resolveSelector(serverData.all, serverData.data, { include: { Notes: [ `Section` ] } }) });
+        });
+
+    }
 
     @autobind handleSectionCreate() {
 
@@ -32,7 +49,9 @@ export class IndexPage extends React.Component {
                 </form>
             </nav>
 
-            {[ 1, 2, 3 ].map(index => <Card key={index} />)}
+            {this.state.sections && this.state.sections.valueSeq().sortBy(section => section.attributes.get(`createdAt`)).map(section =>
+                <Card key={section.key} section={section} />
+            )}
 
         </div>;
 

@@ -1,3 +1,4 @@
+import { fetchJsonServer, resolveSelector }                                     from '@manaflair/json-talk';
 import { autobind }                                                             from 'core-decorators';
 import { Link }                                                                 from 'react-router';
 
@@ -9,13 +10,29 @@ export class SectionPage extends React.Component {
 
     };
 
+    constructor(props) {
+
+        super(props);
+
+        this.state = { section: null };
+
+    }
+
+    componentDidMount() {
+
+        fetchJsonServer(`/api/sections/${this.props.params.id}?include=Notes,Notes.Section`).then(serverData => {
+            this.setState({ section: resolveSelector(serverData.all, serverData.main, { include: { Notes: [ `Section` ] } }) });
+        });
+
+    }
+
     @autobind handleNoteCreate() {
 
     }
 
     render() {
 
-        return <div className={`p-a-1 p-b-0`}>
+        return this.state.section ? <div className={`p-a-1 p-b-0`}>
 
             <nav className={`navbar navbar-fixed-top navbar-light bg-faded`}>
                 <form className={`form-inline pull-xs-left`}>
@@ -43,9 +60,11 @@ export class SectionPage extends React.Component {
                 </form>
             </nav>
 
-            {[ 1, 2, 3 ].map(index => <Note key={index} />)}
+            {this.state.section.relationships.get(`Notes`).data.valueSeq().sortBy(note => note.attributes.get(`createdAt`)).map(note =>
+                <Note key={note.key} note={note} />
+            )}
 
-        </div>;
+        </div> : null;
 
     }
 

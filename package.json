@@ -5,6 +5,7 @@
   },
   "dependencies": {
     "@manaflair/json-server": "manaflair/json-server",
+    "@manaflair/json-talk": "manaflair/json-talk",
     "babel-cli": "^6.14.0",
     "babel-core": "^6.14.0",
     "babel-loader": "^6.2.5",
