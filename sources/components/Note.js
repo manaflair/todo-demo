@@ -1,23 +1,38 @@
+import { relationshipRemove }                                                   from '@manaflair/json-talk/actions';
+import { resourcePatch, resourceDelete }                                        from '@manaflair/json-talk/actions';
 import { PropTypes as JsonTalkPropTypes }                                       from '@manaflair/json-talk/react';
 import { autobind }                                                             from 'core-decorators';
+import { connect }                                                              from 'react-redux';
+
+@connect()
 
 export class Note extends React.Component {
 
     static propTypes = {
 
+        dispatch: React.PropTypes.func.isRequired,
+
         note: JsonTalkPropTypes.resourceOf(`Note`).isRequired
 
     };
 
-    @autobind handleContentUpdate() {
+    @autobind handleContentUpdate(content) {
+
+        this.props.dispatch(resourcePatch(this.props.note.clear().mergeIn([ `attributes` ], { content })));
 
     }
 
-    @autobind handleStatusUpdate() {
+    @autobind handleStatusUpdate(status) {
+
+        this.props.dispatch(resourcePatch(this.props.note.clear().mergeIn([ `attributes` ], { status })));
 
     }
 
     @autobind handleDelete() {
+
+        this.props.dispatch(resourceDelete(this.props.note, { sideEffects: [
+            relationshipRemove(this.props.note.relationships.get(`Section`).data, `Notes`, this.props.note)
+        ] }));
 
     }
 

@@ -1,12 +1,18 @@
+import { resourcePatch, resourceDelete, resourceDeleteAll }                     from '@manaflair/json-talk/actions';
 import { PropTypes as JsonTalkPropTypes }                                       from '@manaflair/json-talk/react';
 import { autobind }                                                             from 'core-decorators';
+import { connect }                                                              from 'react-redux';
 import { Link }                                                                 from 'react-router';
 
 import { Note }                                                                 from 'components/Note';
 
+@connect()
+
 export class Card extends React.Component {
 
     static propTypes = {
+
+        dispatch: React.PropTypes.func.isRequired,
 
         section: JsonTalkPropTypes.resourceOf(`Section`).isRequired
 
@@ -14,9 +20,20 @@ export class Card extends React.Component {
 
     @autobind handleSectionRename() {
 
+        let title = prompt(`How do you wish to call this section?`, this.props.section.attributes.get(`title`));
+
+        if (!title)
+            return;
+
+        this.props.dispatch(resourcePatch(this.props.section.clear().mergeIn([ `attributes` ], { title })));
+
     }
 
     @autobind handleSectionDelete() {
+
+        this.props.dispatch(resourceDelete(this.props.section, { sideEffects: [
+            resourceDeleteAll(this.props.section.relationships.get(`Notes`).data)
+        ] }));
 
     }
 

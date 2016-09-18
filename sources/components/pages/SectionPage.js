@@ -1,38 +1,51 @@
-import { fetchJsonServer, resolveSelector }                                     from '@manaflair/json-talk';
+import { relationshipAdd }                                                      from '@manaflair/json-talk/actions';
+import { resourceSetAll, resourceCreate }                                       from '@manaflair/json-talk/actions';
+import { PropTypes as JsonTalkPropTypes }                                       from '@manaflair/json-talk/react';
+import { Locator, fetchJsonServer, hydrateResource }                            from '@manaflair/json-talk';
 import { autobind }                                                             from 'core-decorators';
+import UUID                                                                     from 'pure-uuid';
+import { connect }                                                              from 'react-redux';
 import { Link }                                                                 from 'react-router';
 
 import { Note }                                                                 from 'components/Note';
+
+@connect((state, props) => ({
+
+    section: state.resourceRegistry.get(new Locator({ type: `Section`, id: props.params.id }), { bestEfforts: true, include: { Notes: [ `Section` ] } })
+
+}))
 
 export class SectionPage extends React.Component {
 
     static propTypes = {
 
+        dispatch: React.PropTypes.func.isRequired,
+
+        section: JsonTalkPropTypes.resourceOf(`Section`)
+
     };
-
-    constructor(props) {
-
-        super(props);
-
-        this.state = { section: null };
-
-    }
 
     componentDidMount() {
 
         fetchJsonServer(`/api/sections/${this.props.params.id}?include=Notes,Notes.Section`).then(serverData => {
-            this.setState({ section: resolveSelector(serverData.all, serverData.main, { include: { Notes: [ `Section` ] } }) });
+            this.props.dispatch(resourceSetAll(serverData.all));
         });
 
     }
 
     @autobind handleNoteCreate() {
 
+        let note = hydrateResource({ type: `Note`, id: new UUID(4).format(), attributes: { content: ``, status: false }, relationships: { Section: { data: this.props.section } } });
+
+        this.props.dispatch(resourceCreate(note, { sideEffects: [
+            relationshipAdd(this.props.section, `Notes`, note)
+        ] }));
+
     }
 
     render() {
 
-        return this.state.section ? <div className={`p-a-1 p-b-0`}>
+        return this.props.section ? <div className={`p-a-1 p-b-0`}>
 
             <nav className={`navbar navbar-fixed-top navbar-light bg-faded`}>
                 <form className={`form-inline pull-xs-left`}>
@@ -60,7 +73,7 @@ export class SectionPage extends React.Component {
                 </form>
             </nav>
 
-            {this.state.section.relationships.get(`Notes`).data.valueSeq().sortBy(note => note.attributes.get(`createdAt`)).map(note =>
+            {this.props.section.relationships.get(`Notes`).data.valueSeq().sortBy(note => note.attributes.get(`createdAt`)).map(note =>
                 <Note key={note.key} note={note} />
             )}
 

@@ -1,31 +1,47 @@
-import { fetchJsonServer, resolveSelector }                                     from '@manaflair/json-talk';
+import { resourceSetAll, resourceCreate }                                       from '@manaflair/json-talk/actions';
+import { PropTypes as JsonTalkPropTypes }                                       from '@manaflair/json-talk/react';
+import { fetchJsonServer, hydrateResource }                                     from '@manaflair/json-talk';
 import { autobind }                                                             from 'core-decorators';
+import UUID                                                                     from 'pure-uuid';
+import ImmutablePropTypes                                                       from 'react-immutable-proptypes';
+import { connect }                                                              from 'react-redux';
 
 import { Card }                                                                 from 'components/Card';
+
+@connect((state, props) => ({
+
+    sections: state.resourceRegistry.get(resource => resource.type === `Section`, { include: { Notes: [ `Section` ] } })
+
+}))
 
 export class IndexPage extends React.Component {
 
     static propTypes = {
 
+        dispatch: React.PropTypes.func.isRequired,
+
+        sections: ImmutablePropTypes.iterableOf(JsonTalkPropTypes.resourceOf(`Section`))
+
     };
-
-    constructor(props) {
-
-        super(props);
-
-        this.state = { sections: null };
-
-    }
 
     componentDidMount() {
 
         fetchJsonServer(`/api/sections?include=Notes,Notes.Section`).then(serverData => {
-            this.setState({ sections: resolveSelector(serverData.all, serverData.data, { include: { Notes: [ `Section` ] } }) });
+            this.props.dispatch(resourceSetAll(serverData.all));
         });
 
     }
 
     @autobind handleSectionCreate() {
+
+        let title = prompt(`How do you wish to call this new section?`, ``);
+
+        if (!title)
+            return;
+
+        let section = hydrateResource({ type: `Section`, id: new UUID(4).format(), attributes: { title }, relationships: { Notes: { data: [] } } });
+
+        this.props.dispatch(resourceCreate(section));
 
     }
 
@@ -49,7 +65,7 @@ export class IndexPage extends React.Component {
                 </form>
             </nav>
 
-            {this.state.sections && this.state.sections.valueSeq().sortBy(section => section.attributes.get(`createdAt`)).map(section =>
+            {this.props.sections && this.props.sections.valueSeq().sortBy(section => section.attributes.get(`createdAt`)).map(section =>
                 <Card key={section.key} section={section} />
             )}
 
