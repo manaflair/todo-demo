@@ -18,9 +18,45 @@ let Note = database.define(`Note`, {
     status: { type: BOOLEAN, allowNul: false, defaultValue: false }
 });
 
+Section.hasMany(Note);
+Note.belongsTo(Section);
+
 Promise.resolve().then(() => {
 
     return database.sync();
+
+}).then(() => {
+
+    function bulkCreate(Target, attributeList) {
+
+        return attributeList.reduce((promise, attributes) => {
+
+            return promise.then(resources => {
+                return Target.create(attributes).then(resource => {
+                    return resources.concat([ resource ]);
+                });
+            });
+
+        }, Promise.resolve([]));
+
+    }
+
+    return Section.create({ id: `00000000-0000-0000-0001-000000000000`, title: `Movies I have to see` }).then(section => {
+
+        return bulkCreate(Note, [
+
+            { id: `00000000-0000-0000-0001-000000000001`, content: `Django`, status: true },
+            { id: `00000000-0000-0000-0001-000000000002`, content: `Sucker Punch`, status: false },
+            { id: `00000000-0000-0000-0001-000000000003`, content: `Tron Legacy`, status: true },
+            { id: `00000000-0000-0000-0001-000000000004`, content: `A Clockwork Orange`, status: false }
+
+        ]).then(resources => {
+
+            return section.setNotes(resources);
+
+        });
+
+    });
 
 }).then(() => {
 
