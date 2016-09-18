@@ -1,3 +1,4 @@
+import { AsyncRenderer }                                                        from '@manaflair/async-props';
 import { createHistory }                                                        from 'history';
 import { Router, Route, useRouterHistory }                                      from 'react-router';
 
@@ -8,7 +9,7 @@ export class Application extends React.Component {
 
     render() {
 
-        return <Router history={useRouterHistory(createHistory)()}>
+        return <Router history={useRouterHistory(createHistory)()} render={props => <AsyncRenderer {... props} />}>
             <Route path={`/:id`} component={SectionPage} />
             <Route path={`/`} component={IndexPage} />
         </Router>;

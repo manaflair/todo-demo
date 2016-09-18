@@ -1,3 +1,4 @@
+import { prepare }                                                              from '@manaflair/async-props';
 import { relationshipAdd }                                                      from '@manaflair/json-talk/actions';
 import { resourceSetAll, resourceCreate }                                       from '@manaflair/json-talk/actions';
 import { PropTypes as JsonTalkPropTypes }                                       from '@manaflair/json-talk/react';
@@ -9,9 +10,21 @@ import { Link }                                                                 
 
 import { Note }                                                                 from 'components/Note';
 
+@prepare((state, props, context, dispatch) => {
+
+    return fetchJsonServer(`/api/sections/${props.params.id}?include=Notes,Notes.Section`).then(serverData => {
+
+        dispatch(resourceSetAll(serverData.all));
+
+        return { sectionLocator: serverData.main.locator };
+
+    });
+
+})
+
 @connect((state, props) => ({
 
-    section: state.resourceRegistry.get(new Locator({ type: `Section`, id: props.params.id }), { bestEfforts: true, include: { Notes: [ `Section` ] } })
+    section: state.resourceRegistry.get(props.sectionLocator, { include: { Notes: [ `Section` ] } })
 
 }))
 
@@ -21,17 +34,10 @@ export class SectionPage extends React.Component {
 
         dispatch: React.PropTypes.func.isRequired,
 
-        section: JsonTalkPropTypes.resourceOf(`Section`)
+        sectionLocator: JsonTalkPropTypes.locatorOf(`Section`).isRequired,
+        section: JsonTalkPropTypes.resourceOf(`Section`).isRequired
 
     };
-
-    componentDidMount() {
-
-        fetchJsonServer(`/api/sections/${this.props.params.id}?include=Notes,Notes.Section`).then(serverData => {
-            this.props.dispatch(resourceSetAll(serverData.all));
-        });
-
-    }
 
     @autobind handleNoteCreate() {
 

@@ -1,3 +1,4 @@
+import { prepare }                                                              from '@manaflair/async-props';
 import { resourceSetAll, resourceCreate }                                       from '@manaflair/json-talk/actions';
 import { PropTypes as JsonTalkPropTypes }                                       from '@manaflair/json-talk/react';
 import { fetchJsonServer, hydrateResource }                                     from '@manaflair/json-talk';
@@ -7,6 +8,16 @@ import ImmutablePropTypes                                                       
 import { connect }                                                              from 'react-redux';
 
 import { Card }                                                                 from 'components/Card';
+
+@prepare((state, props, context, dispatch) => {
+
+    return fetchJsonServer(`/api/sections?include=Notes,Notes.Section`).then(serverData => {
+
+        dispatch(resourceSetAll(serverData.all));
+
+    });
+
+})
 
 @connect((state, props) => ({
 
@@ -20,17 +31,9 @@ export class IndexPage extends React.Component {
 
         dispatch: React.PropTypes.func.isRequired,
 
-        sections: ImmutablePropTypes.iterableOf(JsonTalkPropTypes.resourceOf(`Section`))
+        sections: ImmutablePropTypes.iterableOf(JsonTalkPropTypes.resourceOf(`Section`)).isRequired
 
     };
-
-    componentDidMount() {
-
-        fetchJsonServer(`/api/sections?include=Notes,Notes.Section`).then(serverData => {
-            this.props.dispatch(resourceSetAll(serverData.all));
-        });
-
-    }
 
     @autobind handleSectionCreate() {
 
