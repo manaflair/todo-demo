@@ -4,7 +4,7 @@ import { PropTypes as JsonTalkPropTypes }                                       
 import { autobind }                                                             from 'core-decorators';
 import { connect }                                                              from 'react-redux';
 
-@connect()
+@connect(undefined, undefined, undefined, { withRef: true })
 
 export class Note extends React.Component {
 
@@ -12,9 +12,67 @@ export class Note extends React.Component {
 
         dispatch: React.PropTypes.func.isRequired,
 
-        note: JsonTalkPropTypes.resourceOf(`Note`).isRequired
+        note: JsonTalkPropTypes.resourceOf(`Note`).isRequired,
+
+        autoFocus: React.PropTypes.bool,
+
+        onBackspace: React.PropTypes.func,
+        onSubmit: React.PropTypes.func
 
     };
+
+    static defaultProps = {
+
+        autoFocus: false,
+
+        onBackspace: () => {},
+        onSubmit: () => {}
+
+    };
+
+    componentDidMount() {
+
+        if (this.props.autoFocus) {
+            this.select();
+        }
+
+    }
+
+    select() {
+
+        if (!this.refs.input)
+            return;
+
+        this.refs.input.select();
+
+    }
+
+    @autobind handleKeyDown(e) {
+
+        switch (e.key) {
+
+            case `Backspace`: {
+
+                if (this.props.note.attributes.get(`content`).length > 0)
+                    return;
+
+                e.preventDefault();
+                this.props.onBackspace();
+
+                this.handleDelete();
+
+            } break;
+
+            case `Enter`: {
+
+                e.preventDefault();
+                this.props.onSubmit();
+
+            } break;
+
+        }
+
+    }
 
     @autobind handleContentUpdate(content) {
 
@@ -45,7 +103,7 @@ export class Note extends React.Component {
                     <input type={`checkbox`} onChange={e => this.handleStatusUpdate(e.target.checked)} checked={this.props.note.attributes.get(`status`)} tabIndex={-1} />
                 </span>
 
-                <input type={`text`} className={`form-control`} onChange={e => this.handleContentUpdate(e.target.value)} value={this.props.note.attributes.get(`content`)} style={{ textDecoration: this.props.note.attributes.get(`status`) ? `line-through` : `none` }} />
+                <input ref={`input`} type={`text`} className={`form-control`} onKeyDown={e => this.handleKeyDown(e)} onChange={e => this.handleContentUpdate(e.target.value)} value={this.props.note.attributes.get(`content`)} style={{ textDecoration: this.props.note.attributes.get(`status`) ? `line-through` : `none` }} />
 
                 <span className={`input-group-btn`}>
                     <button type={`button`} className={`btn btn-secondary`} onClick={e => this.handleDelete()} tabIndex={-1}><i className={`fa fa-times`} /></button>

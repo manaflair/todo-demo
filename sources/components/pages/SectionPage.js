@@ -4,6 +4,8 @@ import { resourceSetAll, resourceCreate }                                       
 import { PropTypes as JsonTalkPropTypes }                                       from '@manaflair/json-talk/react';
 import { Locator, fetchJsonServer, hydrateResource }                            from '@manaflair/json-talk';
 import { autobind }                                                             from 'core-decorators';
+import Immutable                                                                from 'immutable';
+import { isNull, isUndefined }                                                  from 'lodash';
 import UUID                                                                     from 'pure-uuid';
 import { connect }                                                              from 'react-redux';
 import { Link }                                                                 from 'react-router';
@@ -39,13 +41,64 @@ export class SectionPage extends React.Component {
 
     };
 
+    constructor(props) {
+
+        super(props);
+
+        this.children = new Immutable.Map();
+        this.autoFocusNotes = new Immutable.Set();
+
+    }
+
+    @autobind registerChild(note, child) {
+
+        if (!isNull(child)) {
+            this.children = this.children.set(note.locator, child);
+        } else {
+            this.children = this.children.delete(note.locator);
+        }
+
+    }
+
     @autobind handleNoteCreate() {
 
         let note = hydrateResource({ type: `Note`, id: new UUID(4).format(), attributes: { content: ``, status: false }, relationships: { Section: { data: this.props.section } } });
 
+        this.autoFocusNotes = this.autoFocusNotes.add(note.locator);
+
         this.props.dispatch(resourceCreate(note, { sideEffects: [
             relationshipAdd(this.props.section, `Notes`, note)
         ] }));
+
+    }
+
+    @autobind handleNoteBackspace(note) {
+
+        let prev = this.props.section.relationships.get(`Notes`).data.reverse().skipUntil(resource => resource.locator.equals(note.locator)).skip(1).first();
+
+        if (isUndefined(prev))
+            return;
+
+        if (!this.children.has(prev.locator))
+            return;
+
+        this.children.get(prev.locator).getWrappedInstance().select();
+
+    }
+
+    @autobind handleNoteSubmit(note) {
+
+        let next = this.props.section.relationships.get(`Notes`).data.skipUntil(resource => resource.locator.equals(note.locator)).skip(1).first();
+
+        if (isUndefined(next)) {
+            this.handleNoteCreate();
+            return;
+        }
+
+        if (!this.children.has(next.locator))
+            return;
+
+        this.children.get(next.locator).getWrappedInstance().select();
 
     }
 
@@ -79,8 +132,8 @@ export class SectionPage extends React.Component {
                 </form>
             </nav>
 
-            {this.props.section.relationships.get(`Notes`).data.valueSeq().sortBy(note => note.attributes.get(`createdAt`)).map(note =>
-                <Note key={note.key} note={note} />
+            {this.props.section.relationships.get(`Notes`).data.valueSeq().sortBy(note => note.attributes.get(`createdAt`)).map((note, index) =>
+                <Note key={note.key} ref={element => this.registerChild(note, element)} note={note} onBackspace={() => this.handleNoteBackspace(note)} onSubmit={() => this.handleNoteSubmit(note)} autoFocus={index === 0 || this.autoFocusNotes.has(note.locator)} />
             )}
 
         </div> : null;
